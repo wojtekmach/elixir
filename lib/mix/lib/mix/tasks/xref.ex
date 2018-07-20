@@ -163,6 +163,9 @@ defmodule Mix.Tasks.Xref do
       ["deprecated"] ->
         deprecated(opts)
 
+      ["unused"] ->
+        unused(MapSet.new(), opts)
+
       ["unreachable"] ->
         unreachable(opts)
 
@@ -787,5 +790,78 @@ defmodule Mix.Tasks.Xref do
       opts[:abort_if_any] -> Mix.raise("mix xref #{kind} failed: #{kind} calls were found")
       true -> :error
     end
+  end
+
+
+  ## Unused
+
+  defp unused(excludes, opts) do
+    dispatches =
+      for source <- sources(opts),
+          {module, func_arity_locations} <- dispatches(source),
+          {{func, arity}, _locations} <- func_arity_locations,
+          do: {module, func, arity},
+          into: MapSet.new()
+
+    mfas =
+      for manifest <- manifests(opts),
+          module(module: module) <- read_manifest(manifest, ""),
+          definitions = definitions(module),
+          locals = locals(definitions),
+          callbacks = behaviour_callbacks(module),
+          {{func, arity}, kind, meta, _clauses} <- definitions,
+          kind in [:def, :defmacro] and
+            not Keyword.has_key?(meta, :file) and
+            not MapSet.member?(dispatches, {module, func, arity}) and
+            not MapSet.member?(locals, {func, arity}) and
+            not MapSet.member?(callbacks, {func, arity}) and
+            not excluded?(excludes, module, func, arity) and
+            not underscored?(func),
+          do: IO.puts("#{inspect module}.#{func}/#{arity}")
+
+    mfas
+  end
+
+  defp definitions(module) do
+    with [_ | _] = path <- :code.which(module),
+         {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
+         {:debug_info_v1, backend, data} <- debug_info,
+         {:ok, %{definitions: definitions}} <- backend.debug_info(:elixir_v1, module, data, []) do
+      definitions
+    else
+      _ -> nil
+    end
+  end
+
+  defp locals(definitions) do
+    locals =
+      Enum.reduce(definitions, [], fn {_, _, _, clauses}, acc ->
+        Enum.reduce(clauses, acc, fn clause, acc ->
+          {_, acc} =
+            Macro.prewalk(clause, acc, fn
+              {local, meta, args} = node, acc when is_atom(local) and is_list(args) ->
+                {node, [{local, length(args)} | acc]}
+
+              node, acc ->
+                {node, acc}
+            end)
+
+          acc
+        end)
+      end)
+
+    MapSet.new(locals)
+  end
+
+  defp behaviour_callbacks(module) do
+    for {:behaviour, behaviours} <- module.__info__(:attributes),
+        behaviour <- behaviours,
+        {fa, _} <- Kernel.Typespec.beam_callbacks(behaviour) || [],
+        do: fa,
+        into: MapSet.new()
+  end
+
+  defp underscored?(func) do
+    match?("_" <> _, Atom.to_string(func))
   end
 end
