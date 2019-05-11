@@ -5290,4 +5290,53 @@ defmodule Kernel do
   defmacro to_char_list(arg) do
     quote(do: Kernel.to_charlist(unquote(arg)))
   end
+
+  def dbg(expr, opts \\ []) do
+    inspect_opts = Keyword.get(opts, :inspect, [])
+    {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+    [_, _, {mod, fun, arity, meta} | _] = stacktrace
+
+    IO.puts([
+      IO.ANSI.yellow(),
+      "#{meta[:file]}:#{meta[:line]} ",
+      IO.ANSI.reset(),
+      "(#{inspect(mod)}.#{fun}/#{arity})\n",
+      inspect(expr, [pretty: true] ++ inspect_opts)
+    ])
+
+    expr
+  end
+
+  defmacro tc(expr, opts \\ []) do
+    label = Keyword.get(opts, :label, Macro.to_string(expr))
+    file = Path.relative_to_cwd(__CALLER__.file)
+
+    quote do
+      {time, result} = :timer.tc(fn -> unquote(expr) end)
+
+      formatted_time =
+        if time > 1000 do
+          [time |> div(1000) |> Integer.to_string(), "ms"]
+        else
+          [Integer.to_string(time), "µs"]
+        end
+
+      label = unquote(to_string(label))
+
+      IO.puts([
+        IO.ANSI.yellow(),
+        unquote(file),
+        ":",
+        to_string(__ENV__.line),
+        ": ",
+        IO.ANSI.reset(),
+        label,
+        " (",
+        formatted_time,
+        ")"
+      ])
+
+      result
+    end
+  end
 end
