@@ -2054,7 +2054,7 @@ defmodule Kernel do
   protocol for more information.
   """
   @spec inspect(Inspect.t(), keyword) :: String.t()
-  def inspect(term, opts \\ []) when is_list(opts) do
+  def inspect(term, opts \\ default_inspect_options()) when is_list(opts) do
     opts = struct(Inspect.Opts, opts)
 
     limit =
@@ -2065,6 +2065,10 @@ defmodule Kernel do
 
     doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(term, opts))
     IO.iodata_to_binary(Inspect.Algebra.format(doc, limit))
+  end
+
+  def default_inspect_options() do
+    :application.get_env(:elixir, :default_inspect_options, [])
   end
 
   @doc """

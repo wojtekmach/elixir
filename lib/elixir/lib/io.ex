@@ -386,7 +386,7 @@ defmodule IO do
 
   """
   @spec inspect(item, keyword) :: item when item: var
-  def inspect(item, opts \\ []) do
+  def inspect(item, opts \\ Kernel.default_inspect_options()) do
     inspect(:stdio, item, opts)
   end
 
