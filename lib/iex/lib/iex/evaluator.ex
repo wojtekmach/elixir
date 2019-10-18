@@ -156,10 +156,58 @@ defmodule IEx.Evaluator do
       stacktrace: stacktrace
     }
 
+    state =
+      case opts[:dot_user_default_path] do
+        "" -> state
+        path -> load_dot_user_default(state, path)
+      end
+
     case opts[:dot_iex_path] do
       "" -> state
       path -> load_dot_iex(state, path)
     end
+  end
+
+  defp load_dot_user_default(state, path) do
+    candidates =
+      if path do
+        [path]
+      else
+        Enum.map([".user_default.exs", "~/.user_default.exs"], &Path.expand/1)
+      end
+
+    path = Enum.find(candidates, &File.regular?/1)
+
+    if is_nil(path) do
+      state
+    else
+      eval_dot_user_default(state, path)
+    end
+  end
+
+  # TODO: ensure path defines UserDefault?
+  defp eval_dot_user_default(state, path) do
+    code = File.read!(path)
+    quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, path, [])
+
+    # Evaluate the contents in the same environment server_loop will run in
+    env = :elixir.env_for_eval(state.env, file: path, line: 1)
+    {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
+    state = %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
+
+    quoted =
+      quote do
+        import UserDefault
+      end
+
+    env = :elixir.env_for_eval(state.env, file: path, line: 1)
+    {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
+    %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
+  catch
+    kind, error ->
+      io_result("Error while evaluating: #{path}")
+      print_error(kind, error, __STACKTRACE__)
+      state
   end
 
   defp load_dot_iex(state, path) do
