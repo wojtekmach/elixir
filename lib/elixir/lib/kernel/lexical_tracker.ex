@@ -126,8 +126,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:references, _from, state) do
-    {compile, runtime} = partition(Map.to_list(state.references), [], [])
-    {:reply, {compile, Map.keys(state.structs), runtime, state.compile_env}, state}
+    {compile, import, runtime} = partition(Map.to_list(state.references), [], [], [])
+    {:reply, {compile, import, Map.keys(state.structs), runtime, state.compile_env}, state}
   end
 
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
@@ -185,7 +185,9 @@ defmodule Kernel.LexicalTracker do
         add_directive(directives, {module, function, arity}, line, warn, :import)
       end)
 
-    {:noreply, %{state | directives: directives}}
+    references = add_reference(state.references, module, :import)
+
+    {:noreply, %{state | directives: directives, references: references}}
   end
 
   def handle_cast({:add_alias, module, line, warn}, state) do
@@ -207,18 +209,24 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
-  defp partition([{remote, :compile} | t], compile, runtime),
-    do: partition(t, [remote | compile], runtime)
+  defp partition([{remote, :compile} | t], compile, import,  runtime),
+    do: partition(t, [remote | compile], import, runtime)
 
-  defp partition([{remote, :runtime} | t], compile, runtime),
-    do: partition(t, compile, [remote | runtime])
+  defp partition([{remote, :runtime} | t], compile, import, runtime),
+    do: partition(t, compile, import, [remote | runtime])
 
-  defp partition([], compile, runtime), do: {compile, runtime}
+  defp partition([{remote, :import} | t], compile, import, runtime),
+    do: partition(t, compile, [remote | import], runtime)
+
+  defp partition([], compile, import, runtime), do: {compile, import, runtime}
 
   # Callbacks helpers
 
   defp add_reference(references, module, :compile) when is_atom(module),
     do: Map.put(references, module, :compile)
+
+  defp add_reference(references, module, :import) when is_atom(module),
+    do: Map.put(references, module, :import)
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
     case Map.fetch(references, module) do
@@ -232,9 +240,7 @@ defmodule Kernel.LexicalTracker do
       add_dispatch(state.directives, module, :import)
       |> add_dispatch({module, function, arity}, :import)
 
-    # Always compile time because we depend
-    # on the module at compile time
-    references = add_reference(state.references, module, :compile)
+    references = add_reference(state.references, module, :import)
     %{state | directives: directives, references: references}
   end
 

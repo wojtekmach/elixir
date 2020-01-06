@@ -323,6 +323,7 @@ defmodule Mix.Tasks.Xref do
 
   defp label_filter(nil), do: :all
   defp label_filter("compile"), do: :compile
+  defp label_filter("import"), do: :import
   defp label_filter("struct"), do: :struct
   defp label_filter("runtime"), do: nil
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
@@ -344,12 +345,16 @@ defmodule Mix.Tasks.Xref do
       source(
         runtime_references: runtime,
         struct_references: structs,
+        import_references: imports,
         compile_references: compile,
         source: file
       ) = source
 
       compile_references =
         modules_to_nodes(compile, :compile, current, source, module_sources, all_modules, filter)
+
+      import_references =
+        modules_to_nodes(imports, :import, current, source, module_sources, all_modules, filter)
 
       struct_references =
         modules_to_nodes(structs, :struct, current, source, module_sources, all_modules, filter)
@@ -359,6 +364,7 @@ defmodule Mix.Tasks.Xref do
 
       references =
         runtime_references
+        |> Map.merge(import_references)
         |> Map.merge(struct_references)
         |> Map.merge(compile_references)
         |> Enum.to_list()
@@ -470,7 +476,7 @@ defmodule Mix.Tasks.Xref do
     shell = Mix.shell()
 
     counters =
-      Enum.reduce(references, %{compile: 0, struct: 0, nil: 0}, fn {_, deps}, acc ->
+      Enum.reduce(references, %{compile: 0, import: 0, struct: 0, nil: 0}, fn {_, deps}, acc ->
         Enum.reduce(deps, acc, fn {_, value}, acc ->
           Map.update!(acc, value, &(&1 + 1))
         end)
@@ -478,6 +484,7 @@ defmodule Mix.Tasks.Xref do
 
     shell.info("Tracked files: #{map_size(references)} (nodes)")
     shell.info("Compile dependencies: #{counters.compile} (edges)")
+    shell.info("Imports dependencies: #{counters.import} (edges)")
     shell.info("Structs dependencies: #{counters.struct} (edges)")
     shell.info("Runtime dependencies: #{counters.nil} (edges)")
 

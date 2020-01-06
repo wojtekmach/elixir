@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 5
+  @manifest_vsn 6
 
   import Record
 
@@ -11,6 +11,7 @@ defmodule Mix.Compilers.Elixir do
     source: nil,
     size: 0,
     compile_references: [],
+    import_references: [],
     struct_references: [],
     runtime_references: [],
     compile_env: [],
@@ -378,7 +379,7 @@ defmodule Mix.Compilers.Elixir do
     {modules, structs, sources, pending_modules, pending_structs} = get_compiler_info()
     {source, sources} = List.keytake(sources, file, source(:source))
 
-    {compile_references, struct_references, runtime_references, compile_env} =
+    {compile_references, import_references, struct_references, runtime_references, compile_env} =
       Kernel.LexicalTracker.references(lexical)
 
     compile_references =
@@ -386,6 +387,7 @@ defmodule Mix.Compilers.Elixir do
 
     source(modules: source_modules) = source
     compile_references = compile_references -- source_modules
+    import_references = import_references -- source_modules
     struct_references = struct_references -- source_modules
     runtime_references = runtime_references -- source_modules
 
@@ -393,6 +395,7 @@ defmodule Mix.Compilers.Elixir do
       source(
         source,
         compile_references: compile_references,
+        import_references: import_references,
         struct_references: struct_references,
         runtime_references: runtime_references,
         compile_env: compile_env
@@ -455,15 +458,16 @@ defmodule Mix.Compilers.Elixir do
     module(module: module, sources: source_files, struct: struct) = entry
     {rest, structs, changed, stale} = acc
 
-    {compile_references, struct_references, runtime_references} =
-      Enum.reduce(source_files, {[], [], []}, fn file, {compile_acc, struct_acc, runtime_acc} ->
+    {compile_references, import_references, struct_references, runtime_references} =
+      Enum.reduce(source_files, {[], [], [], []}, fn file, {compile_acc, import_acc, struct_acc, runtime_acc} ->
         source(
           compile_references: compile_refs,
+          import_references: import_refs,
           struct_references: struct_refs,
           runtime_references: runtime_refs
         ) = List.keyfind(sources, file, source(:source))
 
-        {compile_acc ++ compile_refs, struct_acc ++ struct_refs, runtime_acc ++ runtime_refs}
+        {compile_acc ++ compile_refs, import_acc ++ import_refs, struct_acc ++ struct_refs, runtime_acc ++ runtime_refs}
       end)
 
     cond do
