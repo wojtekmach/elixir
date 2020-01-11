@@ -1312,10 +1312,10 @@ defmodule Code.Formatter do
   ## Sigils
 
   defp maybe_sigil_to_algebra(fun, meta, args, state) do
-    with <<"sigil_", name>> <- Atom.to_string(fun),
+    with <<"sigil_", name::binary>> <- Atom.to_string(fun),
          [{:<<>>, _, entries}, modifiers] when is_list(modifiers) <- args,
          opening_delimiter when not is_nil(opening_delimiter) <- meta[:delimiter] do
-      doc = <<?~, name, opening_delimiter::binary>>
+      doc = <<?~, name::binary, opening_delimiter::binary>>
 
       entries =
         case state.sigils do

@@ -65,6 +65,9 @@ defmodule Macro do
   The module containing the custom sigil must be imported before the sigil
   syntax can be used.
 
+  Elixir originally only allowed single-letter sigils. Support for multi-character
+  sigils has been added in v1.13.
+
   ### Examples
 
       defmodule MySigils do
@@ -1323,24 +1326,46 @@ defmodule Macro do
     delimiter = Keyword.get(meta, :delimiter, "\"")
     {left, right} = delimiter_pair(delimiter)
 
-    case Atom.to_string(sigil) do
-      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+    case parse_sigil(Atom.to_string(sigil)) do
+      {:upcase, name} ->
         args = sigil_args(args, fun)
         {:<<>>, _, [binary]} = parts
-        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
+
+        formatted =
+          <<?~, name::binary, left::binary, binary::binary, right::binary, args::binary>>
+
         {:ok, fun.(ast, formatted)}
 
-      <<"sigil_", name>> when name >= ?a and name <= ?z ->
+      {:downcase, name} ->
         args = sigil_args(args, fun)
-        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
+        formatted = "~" <> name <> interpolate(parts, left, right, fun) <> args
         {:ok, fun.(ast, formatted)}
 
-      _ ->
+      :error ->
         :error
     end
   end
 
   defp sigil_call(_other, _fun) do
+    :error
+  end
+
+  defp parse_sigil("sigil_" <> <<letter>>) when letter >= ?a and letter <= ?z do
+    {:downcase, <<letter>>}
+  end
+
+  defp parse_sigil("sigil_" <> <<first>> <> remaining) when first >= ?A and first <= ?Z do
+    if Enum.all?(
+         String.to_charlist(remaining),
+         &((&1 >= ?a and &1 <= ?z) or (&1 >= ?A and &1 <= ?Z))
+       ) do
+      {:upcase, <<first>> <> remaining}
+    else
+      :error
+    end
+  end
+
+  defp parse_sigil(_) do
     :error
   end
 

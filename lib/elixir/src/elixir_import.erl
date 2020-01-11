@@ -65,12 +65,13 @@ import_sigil_macros(Meta, Ref, Opts, E) ->
     end
   end).
 
-filter_sigils(Key) -> 
-  lists:filter(fun({Atom, _}) -> 
-    case atom_to_list(Atom) of
-      "sigil_" ++ [L] when L >= $a, L =< $z; L >= $A, L =< $Z -> true;
-      _ -> false
-    end
+filter_sigils(Key) ->
+  lists:filter(fun({Atom, Arity}) ->
+    Arity == 2 andalso
+      case atom_to_list(Atom) of
+        "sigil_" ++ _ -> true;
+        _ -> false
+      end
   end, Key).
 
 %% Calculates the imports based on only and except
