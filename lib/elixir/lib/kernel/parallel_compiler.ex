@@ -494,10 +494,17 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
 
       {:timed_out, child} ->
-        case List.keyfind(files, child, 0) do
-          {^child, _, file, _} -> state.each_long_compilation.(file)
-          _ -> :ok
-        end
+        files =
+          case List.keyfind(files, child, 0) do
+            {^child, ref, file, _timer_ref} ->
+              state.each_long_compilation.(file)
+              threshold = state.long_compilation_threshold
+              timer_ref = Process.send_after(self(), {:timed_out, child}, threshold * 1000)
+              List.keyreplace(files, child, 0, {child, ref, file, timer_ref})
+
+            _ ->
+              files
+          end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
 
