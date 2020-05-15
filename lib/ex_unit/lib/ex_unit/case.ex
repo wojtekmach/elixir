@@ -513,6 +513,8 @@ defmodule ExUnit.Case do
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
+    Module.put_attribute(mod, :ex_unit_test, test)
+    Module.put_attribute(mod, :ex_unit_tmp_dirs, [])
 
     for attribute <- Module.get_attribute(mod, :ex_unit_registered_test_attributes) do
       Module.delete_attribute(mod, attribute)
