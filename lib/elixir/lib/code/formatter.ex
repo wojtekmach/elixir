@@ -220,6 +220,7 @@ defmodule Code.Formatter do
         |> gather_comments()
         |> state(opts)
 
+      forms = (opts[:transform] || & &1).(forms)
       {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
       {:ok, doc}
     end
