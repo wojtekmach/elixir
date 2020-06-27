@@ -1956,20 +1956,15 @@ defmodule EnumTest.SideEffects do
   end
 
   test "take/2 does not consume next without a need" do
-    path = tmp_path("oneliner.txt")
-    File.mkdir(Path.dirname(path))
+    path = Path.join([tmp_dir!(), "oneliner.txt"])
 
-    try do
-      File.write!(path, "ONE")
+    File.write!(path, "ONE")
 
-      File.open!(path, [], fn file ->
-        iterator = IO.stream(file, :line)
-        assert Enum.take(iterator, 1) == ["ONE"]
-        assert Enum.take(iterator, 5) == []
-      end)
-    after
-      File.rm(path)
-    end
+    File.open!(path, [], fn file ->
+      iterator = IO.stream(file, :line)
+      assert Enum.take(iterator, 1) == ["ONE"]
+      assert Enum.take(iterator, 5) == []
+    end)
   end
 
   test "take/2 with no elements works as no-op" do

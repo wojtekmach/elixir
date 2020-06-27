@@ -4,7 +4,7 @@ defmodule ExUnit.FailuresManifestTest do
   use ExUnit.Case, async: false
 
   import ExUnit.FailuresManifest
-  import ExUnit.TestHelpers, only: [tmp_path: 0, in_tmp: 2]
+  import ExUnit.TestHelpers, only: [in_tmp: 2]
 
   @passed nil
   @skipped {:skipped, "reason"}
@@ -96,14 +96,16 @@ defmodule ExUnit.FailuresManifestTest do
 
   @manifest_path "example.manifest"
 
+  defp manifest_path() do
+    Path.join([tmp_dir!(), "example.manifest"])
+  end
+
   describe "write!/2" do
     test "stores a manifest that can later be read with read/1", context do
       manifest = non_blank_manifest(context)
 
-      in_tmp(context.test, fn ->
-        assert write!(manifest, @manifest_path) == :ok
-        assert read(@manifest_path) == manifest
-      end)
+      assert write!(manifest, manifest_path()) == :ok
+      assert read(manifest_path()) == manifest
     end
 
     test "prunes tests from files that no longer exist", context do
@@ -143,9 +145,7 @@ defmodule ExUnit.FailuresManifestTest do
 
   describe "read/1" do
     test "returns a blank manifest when loading a file that does not exit" do
-      path = tmp_path() <> "missing.manifest"
-      refute File.exists?(path)
-      assert read(path) == new()
+      assert read(tmp_dir!() <> "missing.manifest") == new()
     end
 
     test "returns a blank manifest when the file is corrupted", context do
