@@ -598,4 +598,33 @@ defmodule ExUnit.Callbacks do
       end
     end
   end
+
+  @doc """
+  Lazily creates a temporary directory for the current process.
+
+  Returns path to the temporary directory.
+  """
+  def tmp_dir!() do
+    key = __MODULE__
+
+    if path = Process.get(key) do
+      path
+    else
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      {module, function, _, _} = Enum.at(stacktrace, 2)
+      path = Path.join(["tmp", escape_path(inspect(module)), escape_path(to_string(function))])
+      File.rm_rf!(path)
+      File.mkdir_p!(path)
+      Process.put(key, path)
+      path
+    end
+  end
+
+  defp escape_path(path) do
+    case :os.type() do
+      {:win32, _} -> String.replace(path, ~R'[~#%&*{}\\:<>?/+|"]', "_")
+      _ -> path
+    end
+    |> String.replace("/", "_")
+  end
 end
