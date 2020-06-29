@@ -289,7 +289,7 @@ defmodule ExUnit.Runner do
     Map.put(context, :tmp_dir, path)
   end
 
-  @escape Enum.map('[~#%&*{}\\:<>?/+|"]', &<<&1::utf8>>)
+  @escape Enum.map('~#%&*{}\\:<>?/+|"', &<<&1::utf8>>)
 
   defp escape_path(path) do
     String.replace(path, @escape, "_")
