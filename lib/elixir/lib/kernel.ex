@@ -5762,6 +5762,43 @@ defmodule Kernel do
     raise ArgumentError, "modifier must be one of: s, a, c"
   end
 
+  @doc """
+  Ensures keywords has given fields.
+
+  ## Examples
+
+      iex> keyword!([foo: 1, bar: 2], [:foo, :bar])
+      [foo: 1, bar: 2]
+
+      iex> keyword!([foo: 1], [:foo, bar: 42])
+      [bar: 42, foo: 1]
+
+      iex> keyword!([foo: 1, bar: 2], [:foo])
+      ** (ArgumentError) unknown keys [:bar]
+
+      iex> keyword!([], [:foo])
+      ** (ArgumentError) missing keys [:foo]
+  """
+  def keyword!(keywords, fields) when is_list(keywords) and is_list(fields) do
+    {required_keys, defaults} = Enum.split_with(fields, &is_atom/1)
+    optional_keys = Keyword.keys(defaults)
+    keys = Keyword.keys(keywords)
+
+    unknown_keys = (keys -- required_keys) -- optional_keys
+
+    if unknown_keys != [] do
+      raise ArgumentError, "unknown keys #{inspect(unknown_keys)}"
+    end
+
+    missing_keys = required_keys -- keys
+
+    if missing_keys != [] do
+      raise ArgumentError, "missing keys #{inspect(missing_keys)}"
+    end
+
+    Keyword.merge(defaults, keywords)
+  end
+
   ## Shared functions
 
   defp assert_module_scope(env, fun, arity) do
