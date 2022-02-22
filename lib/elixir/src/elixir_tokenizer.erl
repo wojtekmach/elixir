@@ -1312,21 +1312,10 @@ interpolation_format({_, _, _, _} = Reason, _Extension, _Args) ->
 
 %% Terminators
 
-handle_terminator(Rest, Line, Column, Scope, {'(', _}, [{alias, _, Alias} | Tokens]) ->
-  Reason =
-    io_lib:format(
-      "unexpected ( after alias ~ts. Function names and identifiers in Elixir "
-      "start with lowercase characters or underscore. For example:\n\n"
-      "    hello_world()\n"
-      "    _starting_with_underscore()\n"
-      "    numb3rs_are_allowed()\n"
-      "    may_finish_with_question_mark?()\n"
-      "    may_finish_with_exclamation_mark!()\n\n"
-      "Unexpected token: ",
-      [Alias]
-    ),
-
-  error({Line, Column, Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Scope, Tokens);
+handle_terminator(Rest, Line, Column, Scope, {'(', _} = ParenToken, [{alias, _, _} = AliasToken | Tokens]) ->
+  DotToken = {'.', {1, 1, nil}},
+  CallToken = {paren_identifier, {1, 1, "__call__"}, '__call__'},
+  handle_terminator(Rest, Line, Column, Scope, ParenToken, [CallToken, DotToken, AliasToken | Tokens]);
 handle_terminator(Rest, Line, Column, #elixir_tokenizer{terminators=none} = Scope, Token, Tokens) ->
   tokenize(Rest, Line, Column, Scope, [Token | Tokens]);
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->

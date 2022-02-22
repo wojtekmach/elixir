@@ -337,6 +337,16 @@ defmodule Code.Formatter do
     map_to_algebra(meta, name_doc, args, state)
   end
 
+  # Foo()
+  defp quoted_to_algebra({{:., _, [name, :__call__]}, meta, args}, context, state) do
+    {name_doc, state} = quoted_to_algebra(name, :parens_arg, state)
+
+    {{call_doc, state}, _wrap_in_parens?} =
+      call_args_to_algebra(args, meta, context, nil, true, state)
+
+    {concat(name_doc, call_doc), state}
+  end
+
   # %{foo: 1}
   # %{foo => bar}
   # %{name | foo => bar}
