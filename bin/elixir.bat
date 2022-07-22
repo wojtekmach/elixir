@@ -179,5 +179,6 @@ if defined useWerl (
 ) else (
   "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
+exit /B %ERRORLEVEL%
 :end
 endlocal
