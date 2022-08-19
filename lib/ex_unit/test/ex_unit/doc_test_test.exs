@@ -987,6 +987,46 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
+  @tag :tmp_dir
+  test "doctest_file/2", %{tmp_dir: tmp_dir} do
+    file = Path.join(tmp_dir, "a.md")
+
+    File.write!(file, """
+    ## Examples
+
+        iex> 1 + 2
+        3
+
+        iex> 1 + 2
+        4
+    """)
+
+    Process.put(:file, file)
+
+    defmodule FileTest do
+      use ExUnit.Case
+      doctest_file(Process.get(:file))
+    end
+
+    doctest_line = __ENV__.line - 3
+    file = Path.relative_to_cwd(file)
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+             1) doctest file #{file} (2) (ExUnit.DocTestTest.FileTest)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest failed
+                doctest:
+                  iex> 1 + 2
+                  4
+                code:  1 + 2 === 4
+                left:  3
+                right: 4
+                stacktrace:
+                  #{file}:7: (file)
+           """
+  end
+
   defp line_placeholder(line_number) do
     digits =
       line_number

@@ -205,7 +205,7 @@ defmodule ExUnit.DocTest do
         env = __ENV__
         file = ExUnit.DocTest.__file__(module)
 
-        for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
+        for {name, test} <- ExUnit.DocTest.__module_doctests__(module, opts) do
           if tags = Keyword.get(opts, :tags) do
             @tag tags
           end
@@ -219,6 +219,22 @@ defmodule ExUnit.DocTest do
     [require, tests]
   end
 
+  defmacro doctest_file(file, opts \\ []) do
+    quote bind_quoted: [file: file, opts: opts] do
+      env = __ENV__
+
+      for {name, test} <- ExUnit.DocTest.__file_doctests__(file) do
+        if tags = Keyword.get(opts, :tags) do
+          @tag tags
+        end
+
+        @file file
+        doc = ExUnit.Case.register_test(env, :doctest, name, [])
+        def unquote(doc)(_), do: unquote(test)
+      end
+    end
+  end
+
   @doc false
   def __file__(module) do
     source =
@@ -229,7 +245,7 @@ defmodule ExUnit.DocTest do
   end
 
   @doc false
-  def __doctests__(module, opts) do
+  def __module_doctests__(module, opts) do
     do_import = Keyword.get(opts, :import, false)
 
     extract(module)
@@ -237,6 +253,20 @@ defmodule ExUnit.DocTest do
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
       compile_test(test, module, do_import, acc + 1)
+    end)
+  end
+
+  @doc false
+  def __file_doctests__(file) do
+    anno = 1
+    do_import = false
+
+    for test <- extract_tests(anno, File.read!(file), {:file, file}) do
+      normalize_test(test, {:file, file})
+    end
+    |> Stream.with_index()
+    |> Enum.map(fn {test, acc} ->
+      compile_test(test, {:file, file}, do_import, acc + 1)
     end)
   end
 
@@ -295,8 +325,33 @@ defmodule ExUnit.DocTest do
     "module #{inspect(m)} (#{n})"
   end
 
+  defp test_name(%{fun_arity: {:file, file}}, _m, n) do
+    file = Path.relative_to_cwd(file)
+    "file #{file} (#{n})"
+  end
+
   defp test_name(%{fun_arity: {f, a}}, m, n) do
     "#{inspect(m)}.#{f}/#{a} (#{n})"
+  end
+
+  # TODO: too much copy-paste from another test_content/3 clause below.
+  defp test_content(%{exprs: exprs, line: line}, {:file, file}, _do_import) do
+    location = [line: line, file: Path.relative_to_cwd(file)]
+    stack = Macro.escape([{nil, :__FILE__, 1, location}])
+
+    if multiple_exceptions?(exprs) do
+      raise RuntimeError,
+        message:
+          "multiple exceptions in the same doctest example are not supported, " <>
+            "please separate your iex> prompts by multiple newlines to start new examples"
+    end
+
+    tests =
+      Enum.map(exprs, fn {expr, expected, formatted} ->
+        test_case_content(expr, expected, location, stack, formatted)
+      end)
+
+    {:__block__, [], tests}
   end
 
   defp test_content(%{exprs: exprs, line: line}, module, do_import) do
