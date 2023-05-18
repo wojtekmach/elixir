@@ -6559,6 +6559,10 @@ defmodule Kernel do
     raise ArgumentError, "modifier must be one of: s, a, c"
   end
 
+  def sigil_PID(binary, []) do
+    :erlang.list_to_pid([?<] ++ :erlang.binary_to_list(binary) ++ [?>])
+  end
+
   ## Shared functions
 
   defp assert_module_scope(env, fun, arity) do
