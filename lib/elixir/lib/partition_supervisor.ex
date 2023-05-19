@@ -57,19 +57,19 @@ defmodule PartitionSupervisor do
       # The key is used to route our message to a particular instance.
       key = 1
       Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :hi)
-      # ["current messages:", [:hi], " in process", #PID<0.602.0>]
+      # ["current messages:", [:hi], " in process", ~PID<0.602.0>]
       :ok
       Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :ho)
-      # ["current messages:", [:ho, :hi], " in process", #PID<0.602.0>]
+      # ["current messages:", [:ho, :hi], " in process", ~PID<0.602.0>]
       :ok
 
       # With a different key, the message will be routed to a different instance.
       key = 2
       Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :a)
-      # ["current messages:", [:a], " in process", #PID<0.603.0>]
+      # ["current messages:", [:a], " in process", ~PID<0.603.0>]
       :ok
       Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :b)
-      # ["current messages:", [:b, :a], " in process", #PID<0.603.0>]
+      # ["current messages:", [:b, :a], " in process", ~PID<0.603.0>]
       :ok
 
   Now let's move on to a useful example.

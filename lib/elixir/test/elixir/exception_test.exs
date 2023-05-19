@@ -375,10 +375,10 @@ defmodule ExceptionTest do
         end
 
       formatted = Exception.format_exit(reason)
-      assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+      assert formatted =~ ~r"exited in: :gen_server\.call\(~PID<\d+\.\d+\.\d+>, :hi\)\n"
 
       assert formatted =~
-               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(~PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
 
       assert formatted =~ ~r"\s{8}\*\* \(EXIT\) normal"
     end
@@ -403,10 +403,10 @@ defmodule ExceptionTest do
         end
 
       formatted = Exception.format_exit(reason)
-      assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+      assert formatted =~ ~r"exited in: :gen_server\.call\(~PID<\d+\.\d+\.\d+>, :hi\)\n"
 
       assert formatted =~
-               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(~PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
 
       assert formatted =~ ~r"\s{8}\*\* \(EXIT\) an exception was raised:\n"
       assert formatted =~ ~r"\s{12}\*\* \(ArgumentError\) argument error\n"

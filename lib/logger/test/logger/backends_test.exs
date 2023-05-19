@@ -58,7 +58,7 @@ defmodule Logger.BackendsTest do
                wait_for_handler(Logger, {MyBackend, self()})
              end)
            end) =~
-             ~r":gen_event handler {Logger.BackendsTest.MyBackend, #PID<.*>} installed in Logger terminating"
+             ~r":gen_event handler {Logger.BackendsTest.MyBackend, ~PID<.*>} installed in Logger terminating"
 
     Logger.flush()
   after
@@ -75,7 +75,7 @@ defmodule Logger.BackendsTest do
                wait_for_handler(Logger, {MyBackend, self()})
              end)
            end) =~
-             ~r":gen_event handler {Logger.BackendsTest.MyBackend, #PID<.*>} installed in Logger terminating"
+             ~r":gen_event handler {Logger.BackendsTest.MyBackend, ~PID<.*>} installed in Logger terminating"
 
     Logger.flush()
   after

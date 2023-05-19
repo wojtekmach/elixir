@@ -1361,8 +1361,8 @@ defmodule IEx.HelpersTest do
 
   describe "pid/1,3" do
     test "builds a PID from string" do
-      assert inspect(pid("0.32767.3276")) == "#PID<0.32767.3276>"
-      assert inspect(pid("0.5.6")) == "#PID<0.5.6>"
+      assert inspect(pid("0.32767.3276")) == "~PID<0.32767.3276>"
+      assert inspect(pid("0.5.6")) == "~PID<0.5.6>"
 
       assert_raise ArgumentError, fn ->
         pid("0.6.-6")
@@ -1370,7 +1370,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "builds a PID from atom" do
-      assert inspect(pid(:init)) == "#PID<0.0.0>"
+      assert inspect(pid(:init)) == "~PID<0.0.0>"
 
       assert_raise ArgumentError, fn ->
         pid(:random_atom_ZM6pX6VwQx)
@@ -1378,8 +1378,8 @@ defmodule IEx.HelpersTest do
     end
 
     test "builds a PID from integers" do
-      assert inspect(pid(0, 32767, 3276)) == "#PID<0.32767.3276>"
-      assert inspect(pid(0, 5, 6)) == "#PID<0.5.6>"
+      assert inspect(pid(0, 32767, 3276)) == "~PID<0.32767.3276>"
+      assert inspect(pid(0, 5, 6)) == "~PID<0.5.6>"
 
       assert_raise FunctionClauseError, fn ->
         pid(0, 6, -6)

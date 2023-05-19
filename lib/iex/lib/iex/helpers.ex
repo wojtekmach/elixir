@@ -1317,16 +1317,16 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> pid("0.21.32")
-      #PID<0.21.32>
+      ~PID<0.21.32>
 
-      iex> pid("#PID<0.21.32>")
-      #PID<0.21.32>
+      iex> pid("~PID<0.21.32>")
+      ~PID<0.21.32>
 
       iex> pid(:init)
-      #PID<0.0.0>
+      ~PID<0.0.0>
 
   """
-  def pid("#PID<" <> string) do
+  def pid("~PID<" <> string) do
     :erlang.list_to_pid(~c"<#{string}")
   end
 
@@ -1348,9 +1348,9 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> pid(0, 21, 32)
-      #PID<0.21.32>
+      ~PID<0.21.32>
       iex> pid(0, 64, 2048)
-      #PID<0.64.2048>
+      ~PID<0.64.2048>
 
   """
   def pid(x, y, z)

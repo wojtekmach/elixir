@@ -29,7 +29,7 @@ defmodule Module.Types.Expr do
     {:ok, :binary, context}
   end
 
-  # #PID<...>
+  # ~PID<...>
   def of_expr(literal, _expected, _stack, context) when is_pid(literal) do
     {:ok, :dynamic, context}
   end
