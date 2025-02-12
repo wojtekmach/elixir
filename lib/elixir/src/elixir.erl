@@ -12,7 +12,8 @@
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
   env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
   eval_quoted/4, eval_local_handler/2, eval_external_handler/3,
-  format_token_error/1
+  format_token_error/1,
+  dbg/1
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -28,6 +29,23 @@
 -type keyword() :: [{atom(), any()}].
 -type keyword(T) :: [{atom(), T}].
 -type struct() :: #{'__struct__' := atom(), atom() => any()}.
+
+dbg(Term) ->
+  case persistent_term:get(dbg, undefined) of
+    undefined ->
+      case os:getenv("DBG", "") of
+        "1" ->
+          persistent_term:put(dbg, true),
+          dbg(Term);
+        "" ->
+          persistent_term:put(dbg, false),
+          ok
+      end;
+    false ->
+      ok;
+    true ->
+      'Elixir.IO':inspect(Term, [{label,dbg}])
+  end.
 
 %% OTP Application API
 

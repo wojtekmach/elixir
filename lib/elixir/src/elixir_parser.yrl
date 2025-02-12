@@ -48,7 +48,7 @@ Terminals
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char
-  .
+  bang.
 
 Rootsymbol grammar.
 
@@ -157,6 +157,7 @@ matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> ellipsis_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> matched_expr bang : build_bang('$1', '$2').    %% <-- NEW RULE
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> sub_matched_expr : '$1'.
 
@@ -272,6 +273,7 @@ sub_matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2'
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
+access_expr -> access_expr bang : build_bang('$1', '$2').
 access_expr -> capture_int int : build_unary_op('$1', number_value('$2')).
 access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
 access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
@@ -771,6 +773,12 @@ build_unary_op({_Kind, Location, Op}, Expr) ->
 
 build_nullary_op({_Kind, Location, Op}) ->
   {Op, meta_from_location(Location), []}.
+
+build_bang({{'.', Meta1, ['Elixir.Access', 'get']}, _Meta2, Args}, {bang, Location}) ->
+    {{'.', Meta1, ['Elixir.Access', 'fetch!']}, meta_from_location(Location), Args};
+
+build_bang(Expr, {bang, Location}) ->
+    {'ok!', meta_from_location(Location), [Expr]}.
 
 build_list(Left, Args, Right) ->
   {handle_literal(Args, Left, newlines_pair(Left, Right)), ?location(Left)}.

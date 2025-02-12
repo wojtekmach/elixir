@@ -403,6 +403,11 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $(; T =:= ${; T =:=
   Token = {list_to_atom([T]), {Line, Column, nil}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
+tokenize([T, $! | Rest], Line, Column, Scope, Tokens) when T =:= $); T =:= $] ->
+  Token = {list_to_atom([T]), {Line, Column, previous_was_eol(Tokens)}},
+  Scope1 = Scope#elixir_tokenizer{bang = true},
+  handle_terminator(Rest, Line, Column + 1, Scope1, Token, Tokens);
+
 tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $); T =:= $}; T =:= $] ->
   Token = {list_to_atom([T]), {Line, Column, previous_was_eol(Tokens)}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
@@ -1424,7 +1429,15 @@ handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
     {error, Reason} ->
       error(Reason, atom_to_list(element(1, Token)) ++ Rest, Scope, Tokens);
     {ok, New} ->
-      tokenize(Rest, Line, Column, New, [Token | Tokens])
+      elixir:dbg([Token | Tokens]),
+      case New#elixir_tokenizer.bang of
+        true ->
+          New1 = New#elixir_tokenizer{bang = false},
+          Bang = {bang, {Line, Column + 1, nil}},
+          tokenize(Rest, Line, Column, New1, [Bang, Token | Tokens]);
+        false ->
+          tokenize(Rest, Line, Column, New, [Token | Tokens])
+      end
   end.
 
 check_terminator({Start, Meta}, Terminators, Scope)

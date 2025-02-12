@@ -11,6 +11,24 @@ import Kernel,
 import :elixir_bootstrap
 
 defmodule Kernel do
+  @doc """
+  Postfix ! operator.
+  """
+  defmacro ({_, _, _} = expr)! do
+    quote do
+      case unquote(expr) do
+        :ok ->
+          :ok
+
+        {:ok, value} ->
+          value
+
+        other ->
+          raise inspect(other)
+      end
+    end
+  end
+
   @moduledoc """
   `Kernel` is Elixir's default environment.
 

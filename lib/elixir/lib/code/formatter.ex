@@ -358,6 +358,24 @@ defmodule Code.Formatter do
     {concat(target_doc, access_doc), state}
   end
 
+  defp quoted_to_algebra({{:., _, [Access, :fetch!]}, meta, [target, arg]}, _context, state) do
+    {target_doc, state} = remote_target_to_algebra(target, state)
+
+    {access_doc, state} =
+      if keyword?(arg) do
+        list_to_algebra(meta, arg, state)
+      else
+        list_to_algebra(meta, [arg], state)
+      end
+
+    {concat(target_doc, concat(access_doc, "!")), state}
+  end
+
+  defp quoted_to_algebra({:ok!, _meta, [target]}, _context, state) do
+    {target_doc, state} = remote_target_to_algebra(target, state)
+    {concat(target_doc, "!"), state}
+  end
+
   # %Foo{}
   # %name{foo: 1}
   # %name{bar | foo: 1}
