@@ -570,34 +570,74 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
 % We use int and flt otherwise elixir_parser won't format them
 % properly in case of errors.
 
+% tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
+%   case tokenize_number(T, [H], 1, false) of
+%     {error, Reason, Original} ->
+%       error({?LOC(Line, Column), Reason, Original}, T, Scope, Tokens);
+%     {[I | Rest], Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
+%       if
+%         Number == 0, (I =:= $x) orelse (I =:= $o) orelse (I =:= $b), Rest == [],
+%         Scope#elixir_tokenizer.cursor_completion /= false ->
+%           tokenize([], Line, Column, Scope, Tokens);
+
+%         true ->
+%           Msg =
+%             io_lib:format(
+%               "invalid character \"~ts\" after number ~ts. If you intended to write a number, "
+%               "make sure to separate the number from the character (using comma, space, etc). "
+%               "If you meant to write a function name or a variable, note that identifiers in "
+%               "Elixir cannot start with numbers. Unexpected token: ",
+%               [[I], Original]
+%             ),
+
+%           error({?LOC(Line, Column), Msg, [I]}, T, Scope, Tokens)
+%       end;
+%     {Rest, Number, Original, Length} when is_integer(Number) ->
+%       Token = {int, {Line, Column, Number}, Original},
+%       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
+%     {Rest, Number, Original, Length} ->
+%       Token = {flt, {Line, Column, Number}, Original},
+%       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
+%   end;
 tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
     {error, Reason, Original} ->
       error({?LOC(Line, Column), Reason, Original}, T, Scope, Tokens);
-    {[I | Rest], Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
-      if
-        Number == 0, (I =:= $x) orelse (I =:= $o) orelse (I =:= $b), Rest == [],
-        Scope#elixir_tokenizer.cursor_completion /= false ->
-          tokenize([], Line, Column, Scope, Tokens);
-
-        true ->
-          Msg =
-            io_lib:format(
-              "invalid character \"~ts\" after number ~ts. If you intended to write a number, "
-              "make sure to separate the number from the character (using comma, space, etc). "
-              "If you meant to write a function name or a variable, note that identifiers in "
-              "Elixir cannot start with numbers. Unexpected token: ",
-              [[I], Original]
-            ),
-
-          error({?LOC(Line, Column), Msg, [I]}, T, Scope, Tokens)
-      end;
-    {Rest, Number, Original, Length} when is_integer(Number) ->
-      Token = {int, {Line, Column, Number}, Original},
-      tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
     {Rest, Number, Original, Length} ->
-      Token = {flt, {Line, Column, Number}, Original},
-      tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
+      case Rest of
+        %% If the next character is "d" or "D", produce a new "decimal" token.
+        [I | Rest2] when I == $d ->
+          %% Instead of converting the number to a float (which would lose trailing zeros),
+          %% preserve the exact digit sequence as a binary.
+          DecimalValue = list_to_binary(Original),
+          Token = {decimal, {Line, Column, DecimalValue}, Original ++ [I]},
+          tokenize(Rest2, Line, Column + Length + 1, Scope, [Token | Tokens]);
+        %% If the next character is another letter or underscore, signal an error.
+        [I | _] when ?is_upcase(I) orelse ?is_downcase(I) orelse I == $_ ->
+          if
+            Number == 0, ((I =:= $x) orelse (I =:= $o) orelse (I =:= $b)),
+            Rest == [], Scope#elixir_tokenizer.cursor_completion /= false ->
+              tokenize([], Line, Column, Scope, Tokens);
+            true ->
+              Msg = io_lib:format(
+                      "invalid character \"~ts\" after number ~ts. If you intended to write a number, "
+                      "make sure to separate the number from the character (using comma, space, etc). "
+                      "If you meant to write a function name or a variable, note that identifiers in "
+                      "Elixir cannot start with numbers. Unexpected token: ",
+                      [[I], Original]),
+              error({?LOC(Line, Column), Msg, [I]}, T, Scope, Tokens)
+          end;
+        %% Otherwise, produce a regular int or float token.
+        _ ->
+          case Number of
+            N when is_integer(N) ->
+              Token = {int, {Line, Column, Number}, Original},
+              tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
+            _ ->
+              Token = {flt, {Line, Column, Number}, Original},
+              tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
+          end
+      end
   end;
 
 % Spaces

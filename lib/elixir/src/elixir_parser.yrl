@@ -48,7 +48,7 @@ Terminals
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char
-  bang.
+  decimal bang.
 
 Rootsymbol grammar.
 
@@ -301,6 +301,7 @@ access_expr -> atom_safe : build_quoted_atom('$1', true, atom_delimiter_meta('$1
 access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter_meta('$1')).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
+access_expr -> decimal : handle_decimal('$1').
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -773,12 +774,6 @@ build_unary_op({_Kind, Location, Op}, Expr) ->
 
 build_nullary_op({_Kind, Location, Op}) ->
   {Op, meta_from_location(Location), []}.
-
-build_bang({{'.', Meta1, ['Elixir.Access', 'get']}, _Meta2, Args}, {bang, Location}) ->
-    {{'.', Meta1, ['Elixir.Access', 'fetch!']}, meta_from_location(Location), Args};
-
-build_bang(Expr, {bang, Location}) ->
-    {'ok!', meta_from_location(Location), [Expr]}.
 
 build_list(Left, Args, Right) ->
   {handle_literal(Args, Left, newlines_pair(Left, Right)), ?location(Left)}.
@@ -1353,3 +1348,17 @@ warn(LineColumn, Message) ->
     nil -> ok;
     File -> elixir_errors:erl_warn(LineColumn, File, Message)
   end.
+
+%%
+
+build_bang({{'.', Meta1, ['Elixir.Access', 'get']}, _Meta2, Args}, {bang, Location}) ->
+    {{'.', Meta1, ['Elixir.Access', 'fetch!']}, meta_from_location(Location), Args};
+
+build_bang(Expr, {bang, Location}) ->
+    {'ok!', meta_from_location(Location), [Expr]}.
+
+handle_decimal(Token) ->
+    {decimal, {_Line, _Column, Bin}, _Original} = Token,
+    Meta = meta_from_token(Token),
+    %% Build the AST equivalent to Decimal.new(Bin)
+    {{'.', Meta, [{'__aliases__', Meta, ['Elixir.Decimal']}, 'new']}, Meta, [Bin]}.
