@@ -11,6 +11,12 @@ import Kernel,
 import :elixir_bootstrap
 
 defmodule Kernel do
+  defmacro unit(value, unit) do
+    quote do
+      %Unit{value: unquote(value), unit: unquote(unit)}
+    end
+  end
+
   @doc """
   Postfix ! operator.
   """

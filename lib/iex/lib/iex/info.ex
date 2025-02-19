@@ -482,3 +482,20 @@ defimpl IEx.Info, for: Any do
     ]
   end
 end
+
+defimpl IEx.Info, for: Unit do
+  def info(value) do
+    [
+      {"Data type", inspect(@for)},
+      {"Raw representation", raw_inspect(value)},
+      {"Reference modules", inspect(@for)}
+    ]
+  end
+
+  defp raw_inspect(value) do
+    value
+    |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> Inspect.Algebra.format(:infinity)
+    |> IO.iodata_to_binary()
+  end
+end

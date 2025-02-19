@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule Date do
+  import Kernel, except: [add: 2]
+
   @moduledoc """
   A Date struct and functions.
 

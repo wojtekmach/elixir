@@ -34,6 +34,7 @@ Nonterminals
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe block_eoe block_item block_list
+  unit_part
   .
 
 Terminals
@@ -280,6 +281,8 @@ access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
 access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', parens_meta('$1'), []}.
+access_expr -> int unit_part : build_unit('$1', '$2').
+access_expr -> flt unit_part : build_unit('$1', '$2').
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
@@ -302,6 +305,7 @@ access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter_meta(
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 access_expr -> decimal : handle_decimal('$1').
+unit_part -> identifier : '$1'.
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -1362,3 +1366,9 @@ handle_decimal(Token) ->
     Meta = meta_from_token(Token),
     %% Build the AST equivalent to Decimal.new(Bin)
     {{'.', Meta, [{'__aliases__', Meta, ['Elixir.Decimal']}, 'new']}, Meta, [Bin]}.
+
+build_unit(NumberToken, UnitToken) ->
+    Number = number_value(NumberToken),
+    Meta = meta_from_token(NumberToken),
+    {identifier, _Meta, UnitAtom} = UnitToken,
+    {unit, Meta, [handle_number(Number, NumberToken, ?exprs(NumberToken)), UnitAtom]}.
