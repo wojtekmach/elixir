@@ -260,7 +260,7 @@ defmodule Access do
     end
   end
 
-  def fetch(list, key) when is_list(list) and is_atom(key) do
+  def fetch(list, key) when is_list(list) and (is_atom(key) or is_binary(key)) do
     case :lists.keyfind(key, 1, list) do
       {_, value} -> {:ok, value}
       false -> :error
@@ -269,7 +269,8 @@ defmodule Access do
 
   def fetch(list, key) when is_list(list) do
     raise ArgumentError,
-          "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+          "the Access calls for lists expect the key to be an atom or a binary, got: " <>
+            inspect(key)
   end
 
   def fetch(nil, _key) do
@@ -340,7 +341,7 @@ defmodule Access do
     end
   end
 
-  def get(list, key, default) when is_list(list) and is_atom(key) do
+  def get(list, key, default) when is_list(list) and (is_atom(key) or is_binary(key)) do
     case :lists.keyfind(key, 1, list) do
       {_, value} -> value
       false -> default
@@ -360,7 +361,7 @@ defmodule Access do
 
   def get(list, key, _default) when is_list(list) do
     raise ArgumentError, """
-    the Access module supports only keyword lists (with atom keys), got: #{inspect(key)}
+    the Access module supports only lists with atom or binary keys, got: #{inspect(key)}
 
     If you want to search lists of tuples, use List.keyfind/3\
     """
@@ -412,8 +413,8 @@ defmodule Access do
     Map.get_and_update(map, key, fun)
   end
 
-  def get_and_update(list, key, fun) when is_list(list) and is_atom(key) do
-    Keyword.get_and_update(list, key, fun)
+  def get_and_update(list, key, fun) when is_list(list) and (is_atom(key) or is_binary(key)) do
+    get_and_update(list, [], key, fun)
   end
 
   def get_and_update(list, key, _fun) when is_list(list) and is_integer(key) do
@@ -434,6 +435,34 @@ defmodule Access do
 
   def get_and_update(nil, key, _fun) do
     raise ArgumentError, "could not put/update key #{inspect(key)} on a nil value"
+  end
+
+  defp get_and_update([{key, current} | t], acc, key, fun) do
+    case fun.(current) do
+      {get, value} ->
+        {get, :lists.reverse(acc, [{key, value} | t])}
+
+      :pop ->
+        {current, :lists.reverse(acc, t)}
+
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+    end
+  end
+
+  defp get_and_update([{_, _} = h | t], acc, key, fun), do: get_and_update(t, [h | acc], key, fun)
+
+  defp get_and_update([], acc, key, fun) do
+    case fun.(nil) do
+      {get, update} ->
+        {get, [{key, update} | :lists.reverse(acc)]}
+
+      :pop ->
+        {nil, :lists.reverse(acc)}
+
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+    end
   end
 
   @doc """
