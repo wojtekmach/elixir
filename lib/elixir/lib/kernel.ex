@@ -3161,6 +3161,19 @@ defmodule Kernel do
     end
   end
 
+  defmacro put_new_in(path, key, value) do
+    quote do
+      update_in(unquote(path), fn data ->
+        {_value, new_data} =
+          Access.get_and_update(data, unquote(key), fn current_value ->
+            {current_value, current_value || unquote(value)}
+          end)
+
+        new_data
+      end)
+    end
+  end
+
   @doc """
   Pops a key from the nested structure via the given `path`.
 
