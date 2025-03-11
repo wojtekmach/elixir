@@ -11,6 +11,14 @@ import Kernel,
 import :elixir_bootstrap
 
 defmodule Kernel do
+  defmacro sigil_PID({:<<>>, _, [binary]}, []) do
+    charlist = :erlang.binary_to_list(<<"<", binary::binary, ">">>)
+
+    quote do
+      :erlang.list_to_pid(unquote(charlist))
+    end
+  end
+
   defmacro unit(value, unit) do
     quote do
       %Unit{value: unquote(value), unit: unquote(unit)}
