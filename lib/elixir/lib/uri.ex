@@ -27,8 +27,16 @@ defmodule URI do
   populate it for backwards compatibility but you should generally
   avoid setting or getting it.
   """
-  @derive {Inspect, optional: [:authority]}
+
+  # @derive {Inspect, optional: [:authority]}
+
   defstruct [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
+
+  defimpl Inspect do
+    def inspect(uri, _opts) do
+      "~URI" <> Kernel.inspect(URI.to_string(uri))
+    end
+  end
 
   @type t :: %__MODULE__{
           scheme: nil | binary,

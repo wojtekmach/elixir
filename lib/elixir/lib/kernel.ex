@@ -19,6 +19,11 @@ defmodule Kernel do
     end
   end
 
+  defmacro sigil_URI({:<<>>, _, [binary]}, []) do
+    uri = URI.new!(binary)
+    Macro.escape(uri)
+  end
+
   defmacro unit(value, unit) do
     quote do
       %Unit{value: unquote(value), unit: unquote(unit)}
