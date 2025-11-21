@@ -87,22 +87,39 @@ defmodule ExUnit.SupervisedTest do
     end
   end
 
-  test "starts a supervised process with correct :\"$callers\"" do
-    test_pid = self()
-    fun = fn -> send(test_pid, {:callers, Process.get(:"$callers")}) end
-    {:ok, _pid} = start_supervised({Task, fun})
+  defmodule ExampleServer do
+    use GenServer
 
-    assert_receive {:callers, callers}
-    assert List.last(callers) == test_pid
+    def start_link([]) do
+      GenServer.start_link(__MODULE__, [])
+    end
+
+    @impl true
+    def init([]) do
+      {:ok, nil}
+    end
+
+    @impl true
+    def handle_call(:callers, _from, state) do
+      {:reply, Process.get(:"$callers"), state}
+    end
+
+    @impl true
+    def handle_call(:ancestors, _from, state) do
+      {:reply, Process.get(:"$ancestors"), state}
+    end
+  end
+
+  test "starts a supervised process with correct :\"$callers\"" do
+    pid = start_supervised!(ExampleServer)
+    callers = GenServer.call(pid, :callers)
+    assert List.last(callers) == self()
   end
 
   test "starts a supervised process with correct :\"$ancestors\"" do
-    test_pid = self()
-    fun = fn -> send(test_pid, {:ancestors, Process.get(:"$ancestors")}) end
-    {:ok, _pid} = start_supervised({Task, fun})
-
-    assert_receive {:ancestors, ancestors}
-    assert List.last(ancestors) == test_pid
+    pid = start_supervised!(ExampleServer)
+    ancestors = GenServer.call(pid, :ancestors)
+    assert List.last(ancestors) == self()
   end
 
   test "stops a supervised process" do

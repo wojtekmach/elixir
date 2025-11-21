@@ -1083,18 +1083,21 @@ defmodule GenServer do
   end
 
   defp do_start(link, module, init_arg, options) do
+    callers = Process.get(:"$callers")
+    init_arg = {init_arg, callers}
+
     case Keyword.pop(options, :name) do
       {nil, opts} ->
-        :gen.start(:gen_server, link, module, init_arg, opts)
+        :gen.start(:elixir_gen_server, link, module, init_arg, opts)
 
       {atom, opts} when is_atom(atom) ->
-        :gen.start(:gen_server, link, {:local, atom}, module, init_arg, opts)
+        :gen.start(:elixir_gen_server, link, {:local, atom}, module, init_arg, opts)
 
       {{:global, _term} = tuple, opts} ->
-        :gen.start(:gen_server, link, tuple, module, init_arg, opts)
+        :gen.start(:elixir_gen_server, link, tuple, module, init_arg, opts)
 
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
-        :gen.start(:gen_server, link, tuple, module, init_arg, opts)
+        :gen.start(:elixir_gen_server, link, tuple, module, init_arg, opts)
 
       {other, _} ->
         raise ArgumentError, """
