@@ -189,8 +189,11 @@ is_sigil({Name, 2}) ->
   case atom_to_list(Name) of
     "sigil_" ++ Letters ->
       case Letters of
-        [L] when L >= $a, L =< $z -> true;
         [] -> false;
+        [H|T] when H >= $a, H =< $z ->
+              lists:all(fun(L) -> (L >= $0 andalso L =< $9)
+                                  orelse (L >= $a andalso L =< $z)
+                        end, T);
         [H|T] when H >= $A, H =< $Z ->
               lists:all(fun(L) -> (L >= $0 andalso L =< $9)
                                   orelse (L>= $A andalso L =< $Z)

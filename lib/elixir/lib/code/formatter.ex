@@ -1499,7 +1499,7 @@ defmodule Code.Formatter do
   defp closing_sigil_delimiter("["), do: "]"
   defp closing_sigil_delimiter("{"), do: "}"
   defp closing_sigil_delimiter("<"), do: ">"
-  defp closing_sigil_delimiter(other) when other in ["\"", "'", "|", "/"], do: other
+  defp closing_sigil_delimiter(other) when other in ["\"", "'", "|", "/", "`"], do: other
 
   ## Bitstrings
 

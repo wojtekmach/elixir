@@ -172,7 +172,7 @@ end
 
 ### Sigils
 
-Sigils start with `~` and are followed by one lowercase letter or by one or more uppercase letters, immediately followed by one of the following pairs:
+Sigils start with `~` and are followed by one or more lowercase letters or by one or more uppercase letters, immediately followed by one of the following pairs:
 
   * `(` and `)`
   * `{` and `}`
@@ -182,6 +182,7 @@ Sigils start with `~` and are followed by one lowercase letter or by one or more
   * `'` and `'`
   * `|` and `|`
   * `/` and `/`
+  * `` ` `` and `` ` ``
 
 After closing the pair, zero or more ASCII letters and digits can be given as a modifier. Sigils are expressed as non-qualified calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
 
