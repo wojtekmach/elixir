@@ -26,7 +26,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
+.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man cli clean_cli format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
 
 #==> Functions
@@ -185,6 +185,23 @@ clean: clean_man
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
+
+#==> Native executables
+
+ZIG ?= zig
+ZIG_BUILD_OPTS ?= --release
+
+# Put elixir, elixirc, iex, and mix in cli/zig-out/bin.
+# The executables use the cli/zig-out/lib link to find lib/.
+# To build for all targets, use ZIG_BUILD_OPTS="release --release".
+cli:
+	@ echo "==> cli (zig build)"
+	$(Q) cd cli && $(ZIG) build $(ZIG_BUILD_OPTS)
+	$(Q) ln -sfn ../../lib cli/zig-out/lib
+
+clean_cli:
+	rm -rf cli/zig-out cli/.zig-cache
+
 
 #==> Documentation tasks
 
